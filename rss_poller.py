@@ -17,13 +17,14 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 FEEDS = [
-    ("EU Startups",    "https://www.eu-startups.com/feed"),
-    ("Sifted",         "https://sifted.eu/feed"),
-    ("Tech.eu",        "https://tech.eu/feed"),
-    ("Finsmes",        "https://www.finsmes.com/feed"),
-    ("TechCrunch",     "https://techcrunch.com/category/startups/feed"),
-    ("Startup Daily",  "https://www.startupdaily.net/feed"),
-    ("BetaKit",        "https://betakit.com/feed"),
+    ("EU Startups",         "https://www.eu-startups.com/feed"),
+    ("Sifted",              "https://sifted.eu/feed"),
+    ("Tech.eu",             "https://tech.eu/feed"),
+    ("TechCrunch",          "https://techcrunch.com/category/startups/feed"),
+    ("TechCrunch Funding",  "https://techcrunch.com/tag/funding/feed"),
+    ("Startup Daily",       "https://www.startupdaily.net/feed"),
+    ("BetaKit",             "https://betakit.com/feed"),
+    ("Business Wire",       "https://businesswire.com/rss/home/?rss=g22"),
 ]
 
 SCOPES = [
