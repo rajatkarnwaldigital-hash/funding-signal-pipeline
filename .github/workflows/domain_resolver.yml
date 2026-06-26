@@ -1,0 +1,38 @@
+name: Domain Resolver
+
+on:
+  schedule:
+    - cron: "30 */6 * * *"   # 30 mins after the RSS poller (runs at :00)
+  workflow_dispatch:
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements_resolver.txt
+
+      - name: Write service account key
+        run: echo '${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}' > /tmp/service_account.json
+
+      - name: Run domain resolver
+        env:
+          GOOGLE_SERVICE_ACCOUNT_JSON: /tmp/service_account.json
+          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+          EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python domain_resolver.py
+
+      - name: Remove service account key
+        if: always()
+        run: rm -f /tmp/service_account.json
