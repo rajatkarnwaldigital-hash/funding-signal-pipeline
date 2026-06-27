@@ -24,7 +24,9 @@ DATABASE = "us"
 DELAY    = 0.35   # seconds between API calls — stay well under rate limits
 
 TRAFFIC_MIN = 500
+TRAFFIC_MAX = 500_000
 AUTH_MIN    = 10
+AUTH_MAX    = 70
 
 NEW_COLUMNS = [
     "organic_traffic", "authority_score", "paid_traffic",
@@ -207,8 +209,8 @@ def main():
                 q(row_num, "authority_score", authority)
 
             # Qualification
-            traffic_ok   = organic_traffic >= TRAFFIC_MIN
-            authority_ok = authority >= AUTH_MIN
+            traffic_ok   = TRAFFIC_MIN <= organic_traffic <= TRAFFIC_MAX
+            authority_ok = AUTH_MIN <= authority <= AUTH_MAX
 
             if organic_traffic == -1 and authority == -1:
                 log.info("  → NO_DATA (both metrics missing)")
@@ -221,10 +223,14 @@ def main():
                 q(row_num, "semrush_status", "QUALIFIED")
             else:
                 reasons = []
-                if not traffic_ok:
+                if organic_traffic != -1 and organic_traffic < TRAFFIC_MIN:
                     reasons.append(f"organic traffic {organic_traffic} < {TRAFFIC_MIN}")
-                if not authority_ok:
+                if organic_traffic > TRAFFIC_MAX:
+                    reasons.append(f"organic traffic too high ({organic_traffic:,} > {TRAFFIC_MAX:,})")
+                if authority != -1 and authority < AUTH_MIN:
                     reasons.append(f"authority score {authority} < {AUTH_MIN}")
+                if authority > AUTH_MAX:
+                    reasons.append(f"authority score too high ({authority} > {AUTH_MAX})")
                 note = "; ".join(reasons)
                 log.info("  → DISQUALIFIED: %s", note)
                 stats["disqualified"] += 1
