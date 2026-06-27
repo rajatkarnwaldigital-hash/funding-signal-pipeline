@@ -1,0 +1,39 @@
+name: SEMrush Qualifier
+
+on:
+  schedule:
+    # RSS poller runs at :00, domain resolver at :30, this runs at :00 next hour
+    # Net: 1h after the RSS poller on a 6-hour cycle
+    - cron: "0 1,7,13,19 * * *"
+  workflow_dispatch:
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements_qualifier.txt
+
+      - name: Write service account key
+        run: echo '${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}' > /tmp/service_account.json
+
+      - name: Run SEMrush qualifier
+        env:
+          GOOGLE_SERVICE_ACCOUNT_JSON: /tmp/service_account.json
+          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+          SEMRUSH_API_KEY: ${{ secrets.SEMRUSH_API_KEY }}
+        run: python semrush_qualifier.py
+
+      - name: Remove service account key
+        if: always()
+        run: rm -f /tmp/service_account.json
