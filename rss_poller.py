@@ -45,7 +45,8 @@ def get_sheet():
 
 def ensure_header(sheet):
     existing = sheet.row_values(1)
-    if existing != SHEET_HEADER:
+    # Check for column presence, not exact equality — other scripts append extra columns to row 1
+    if not all(col in existing for col in SHEET_HEADER):
         sheet.insert_row(SHEET_HEADER, 1)
         log.info("Header row written.")
 
