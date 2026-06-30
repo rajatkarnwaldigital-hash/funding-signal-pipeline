@@ -5,6 +5,7 @@ import requests
 import gspread
 from google.oauth2.service_account import Credentials
 from dotenv import load_dotenv
+from _utils import _a1, safe_cell, parse_int
 
 load_dotenv()
 
@@ -32,30 +33,6 @@ NEW_COLUMNS = [
     "organic_traffic", "authority_score", "paid_traffic",
     "semrush_status", "semrush_notes",
 ]
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-def _a1(row: int, col: int) -> str:
-    col_str = ""
-    c = col
-    while c > 0:
-        c, rem = divmod(c - 1, 26)
-        col_str = chr(65 + rem) + col_str
-    return f"{col_str}{row}"
-
-
-def safe_cell(row: list, idx: int) -> str:
-    return row[idx].strip() if 0 <= idx < len(row) else ""
-
-
-def parse_int(val) -> int:
-    try:
-        return int(str(val).replace(",", "").split(".")[0])
-    except (ValueError, TypeError):
-        return -1
 
 
 # ---------------------------------------------------------------------------

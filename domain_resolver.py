@@ -8,6 +8,7 @@ import gspread
 from exa_py import Exa
 from google.oauth2.service_account import Credentials
 from dotenv import load_dotenv
+from _utils import BLOCKED_DOMAINS, _a1, is_blocked, safe_cell
 
 load_dotenv()
 
@@ -23,34 +24,10 @@ SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
 NEW_COLUMNS = ["company_name", "domain", "resolved", "resolver_notes"]
 
-# Domains that are directories/news sites, not company homepages
-BLOCKED_DOMAINS = {
-    "wikipedia.org", "crunchbase.com", "linkedin.com", "techcrunch.com",
-    "bloomberg.com", "forbes.com", "businesswire.com", "reuters.com",
-    "wsj.com", "ft.com", "nytimes.com", "theguardian.com",
-    "tech.eu", "sifted.eu", "eu-startups.com", "betakit.com",
-    "startupdaily.net", "venturebeat.com", "wired.com", "theverge.com",
-    "engadget.com", "zdnet.com", "cnet.com", "twitter.com", "x.com",
-    "facebook.com", "instagram.com", "youtube.com", "github.com",
-    "medium.com", "substack.com", "angel.co", "angellist.com",
-    "pitchbook.com", "cbinsights.com", "dealroom.co", "techeu.com",
-    "prnewswire.com", "globenewswire.com", "accesswire.com",
-}
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-def _a1(row: int, col: int) -> str:
-    """Convert 1-based row/col to A1 notation."""
-    col_str = ""
-    c = col
-    while c > 0:
-        c, rem = divmod(c - 1, 26)
-        col_str = chr(65 + rem) + col_str
-    return f"{col_str}{row}"
-
 
 def extract_domain(url: str) -> str:
     try:
@@ -60,20 +37,6 @@ def extract_domain(url: str) -> str:
         return re.sub(r"^www\.", "", hostname).lower()
     except Exception:
         return ""
-
-
-def is_blocked(domain: str) -> bool:
-    if not domain or "." not in domain:
-        return True
-    for blocked in BLOCKED_DOMAINS:
-        if domain == blocked or domain.endswith("." + blocked):
-            return True
-    return False
-
-
-def safe_cell(row: list, idx: int) -> str:
-    """Return row[idx] safely, empty string if out of bounds."""
-    return row[idx].strip() if idx >= 0 and idx < len(row) else ""
 
 
 # ---------------------------------------------------------------------------
