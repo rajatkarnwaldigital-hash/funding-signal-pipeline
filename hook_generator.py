@@ -99,7 +99,7 @@ def ensure_columns(sheet) -> dict:
 def pick_competitor(competitors: list[dict], target_traffic: int) -> tuple[str, int]:
     """
     Walk the SEMrush competitor list (relevance-sorted) and return the first
-    (domain, traffic) where traffic > target_traffic and domain is not blocked.
+    unblocked domain with at least 500 monthly organic visits.
     Returns ("", -1) if nothing qualifies.
     """
     for row in competitors:
@@ -107,7 +107,7 @@ def pick_competitor(competitors: list[dict], target_traffic: int) -> tuple[str, 
         traffic = parse_int(row.get("Ot", -1))
         if not domain or is_blocked(domain):
             continue
-        if traffic > target_traffic:
+        if traffic >= 500:
             return domain, traffic
     return "", -1
 
@@ -121,13 +121,16 @@ Write a cold email hook for an SEO agency called EthicalSEO (sender: Konstantin 
 
 Target company: {company_name} (website: {domain})
 Their monthly organic search visits: {target_traffic:,}
-A competitor with stronger organic presence: {competitor_domain}
+A competitor identified in their organic keyword space: {competitor_domain}
 That competitor's monthly organic visits: {competitor_traffic:,}
-Traffic gap: {gap:,} visits per month going to {competitor_domain} instead of {company_name}
+
+Frame the hook based on the traffic numbers:
+- If {competitor_domain} has more visits than {company_name}: open with the gap — {company_name} is missing organic visits that {competitor_domain} captures from the same keyword territory
+- If {competitor_domain} has fewer or equal visits: open with the keyword territory — {competitor_domain} is ranking for terms in {company_name}'s space that {company_name} is not yet capturing, which is organic pipeline they are not building
+In both cases: (2) name the likely cost — that gap typically gets covered with paid search budget that does not compound, (3) offer that this is exactly what EthicalSEO fixes
 
 Rules — all mandatory:
 - Do not mention funding, hiring, or any news announcement. Write as if you found them through organic research only.
-- Structure: (1) state the organic gap vs {competitor_domain} as a problem, (2) name the likely cost — they are probably compensating with paid search budget that does not compound, (3) offer that this is exactly what EthicalSEO fixes
 - If {company_name} looks like a SaaS or software company based on the domain, add one sentence that {competitor_domain} is now being cited in AI search results and AI-generated answers, and {company_name} is not yet
 - Every sentence must state a problem or offer a solution — nothing filler or introductory
 - Frame around revenue and cost, not vanity traffic numbers
@@ -149,14 +152,12 @@ def generate_hook(
     competitor_traffic: int,
     claude_client: anthropic.Anthropic,
 ) -> str:
-    gap = competitor_traffic - target_traffic
     prompt = HOOK_PROMPT.format(
         company_name=company_name,
         domain=domain,
         target_traffic=target_traffic,
         competitor_domain=competitor_domain,
         competitor_traffic=competitor_traffic,
-        gap=gap,
     )
     try:
         resp = claude_client.messages.create(
@@ -243,8 +244,7 @@ def main():
                 log.info("  → NO_COMPETITOR_GAP (no competitor outranks target or all blocked)")
                 stats["no_competitor_gap"] += 1
                 q(row_num, "hook_status", "NO_COMPETITOR_GAP")
-                q(row_num, "hook_notes",
-                  f"No unblocked competitor found with traffic > {target_traffic:,}")
+                q(row_num, "hook_notes", "No unblocked competitor found with traffic >= 500")
                 continue
 
             log.info(

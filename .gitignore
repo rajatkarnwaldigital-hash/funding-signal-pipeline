@@ -2,6 +2,8 @@
 .env
 .env.*
 *.env
+# Allow example/template env files
+!.env*.example
 service_account.json
 *credentials*.json
 *service_account*.json
