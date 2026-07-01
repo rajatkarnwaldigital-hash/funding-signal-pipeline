@@ -237,10 +237,14 @@ def main():
                 q(row_num, "hook_notes", "SEMrush returned no competitor data")
                 continue
 
+            log.info("  SEMrush returned %d competitors; first 3 raw: %s",
+                     len(competitors), competitors[:3])
+
             competitor_domain, competitor_traffic = pick_competitor(competitors, target_traffic)
 
             if not competitor_domain:
-                log.info("  → NO_COMPETITOR_GAP (no competitor outranks target or all blocked)")
+                log.info("  → NO_COMPETITOR_GAP (all %d competitors blocked or empty Dn)",
+                         len(competitors))
                 stats["no_competitor_gap"] += 1
                 q(row_num, "hook_status", "NO_COMPETITOR_GAP")
                 q(row_num, "hook_notes", "No unblocked competitor returned by SEMrush")
