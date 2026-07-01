@@ -143,7 +143,7 @@ Choose the sharpest angle:
 - If paid visits are low or zero: note the specific keyword territory where {competitor_domain} is capturing visits that {company_name} is not ranking for — frame this as pipeline going elsewhere
 
 Sentence 1: state the gap using actual numbers — name both companies, be specific about what {competitor_domain} captures that {company_name} is missing
-Sentence 2: state the cost or consequence for {company_name}'s pipeline — what it means in practical terms, no solution offered
+Sentence 2: state the cost or consequence in plain terms — qualified search demand flows to a competitor instead of {company_name}'s site. No vague language like "potential losses" or "could mean." State it as a fact.
 
 Rules — all mandatory:
 - Do NOT mention funding, hiring, or any recent news — write as if found through search research only
@@ -151,7 +151,7 @@ Rules — all mandatory:
 - The character — (em dash) is FORBIDDEN. Do not use it. Use a comma or period instead.
 - Do NOT invent or estimate dollar figures
 - Do NOT mention SEMrush or any analytics tool
-- No AI-speak: "leverage", "landscape", "dive into", "delve", "game-changer", "unlock", "journey", "cutting-edge", "robust"
+- No AI-speak or SEO jargon: "leverage", "landscape", "dive into", "delve", "game-changer", "unlock", "journey", "cutting-edge", "robust", "domain authority", "owned properties", "keyword territory", "search intent", "organic presence"
 - Write "visits" not "clicks"
 - Plain, direct English
 - 2 sentences, hard limit — no exceptions
