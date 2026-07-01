@@ -96,24 +96,28 @@ def ensure_columns(sheet) -> dict:
 # Competitor selection
 # ---------------------------------------------------------------------------
 
-MIN_SHARED_KEYWORDS = 10
+MIN_SHARED_KEYWORDS  = 10
+MIN_COMPETITOR_TRAFFIC = 200
 
 
 def pick_competitor(competitors: list[dict], target_traffic: int) -> tuple[str, int]:
     """
     Walk the SEMrush competitor list (relevance-sorted) and return the first
-    unblocked domain with at least MIN_SHARED_KEYWORDS keyword overlap.
+    unblocked domain with at least MIN_SHARED_KEYWORDS keyword overlap and
+    MIN_COMPETITOR_TRAFFIC organic visits (avoids near-zero ghost competitors).
 
     domain_organic_organic returns full column names ('Domain', 'Organic Keywords',
     'Organic Traffic') rather than the short codes — check both for resilience.
     """
     for row in competitors:
         domain   = (row.get("Domain") or row.get("Dn") or "").strip().lower()
-        traffic  = parse_int(row.get("Organic Traffic") or row.get("Ot") or -1)
+        traffic  = parse_int(row.get("Organic Traffic") or row.get("Ot") or 0)
         overlap  = parse_int(row.get("Organic Keywords") or row.get("Or") or 0)
         if not domain or is_blocked(domain):
             continue
         if overlap < MIN_SHARED_KEYWORDS:
+            continue
+        if traffic < MIN_COMPETITOR_TRAFFIC:
             continue
         return domain, traffic
     return "", -1
@@ -129,27 +133,29 @@ Write a 2-sentence cold email opening. Pure observation only — no agency name,
 Target: {company_name} ({domain})
 Their monthly organic visits: {target_traffic:,}
 Their monthly paid search visits: {paid_traffic:,}
-Top keyword-overlap competitor: {competitor_domain}
+Competitor in their keyword space: {competitor_domain}
 That competitor's monthly organic visits: {competitor_traffic:,}
 
-Pick the angle that makes the sharper point:
-- Paid-to-organic: if {company_name} has meaningful paid visits, note that they are spending on search demand that {competitor_domain} captures organically — making the paid spend visible as an ongoing cost for something a competitor gets for free
-- Organic gap: if paid visits are low or zero, note that {competitor_domain} is capturing visits from keyword territory that {company_name} is not yet ranking for
+The hook must always surface a gap or vulnerability for {company_name}, never praise them or imply they are winning. The observation should make the reader think "we have a problem here."
 
-Sentence 1: state exactly what you observed — name both companies and use the actual numbers
-Sentence 2: state the implication for their pipeline or budget — no solution, just the consequence
+Choose the sharpest angle:
+- If {company_name} has meaningful paid visits (paid_traffic > 500): note they are paying for search demand that {competitor_domain} captures for free organically — the paid spend is an ongoing cost for something a competitor earns automatically
+- If paid visits are low or zero: note the specific keyword territory where {competitor_domain} is capturing visits that {company_name} is not ranking for — frame this as pipeline going elsewhere
+
+Sentence 1: state the gap using actual numbers — name both companies, be specific about what {competitor_domain} captures that {company_name} is missing
+Sentence 2: state the cost or consequence for {company_name}'s pipeline — what it means in practical terms, no solution offered
 
 Rules — all mandatory:
-- Do NOT mention funding, hiring, or any recent news — write as if you found this through search research only
+- Do NOT mention funding, hiring, or any recent news — write as if found through search research only
 - Do NOT name any agency, do not offer a fix, do not say "we" or "I can help"
-- The em dash character (—) is FORBIDDEN — do not use it anywhere, replace any break with a comma or period
+- The character — (em dash) is FORBIDDEN. Do not use it. Use a comma or period instead.
 - Do NOT invent or estimate dollar figures
-- Do NOT mention SEMrush or any analytics tool by name
-- No AI-speak: do not use "leverage", "landscape", "dive into", "delve", "game-changer", "unlock", "journey", "cutting-edge", "robust"
+- Do NOT mention SEMrush or any analytics tool
+- No AI-speak: "leverage", "landscape", "dive into", "delve", "game-changer", "unlock", "journey", "cutting-edge", "robust"
 - Write "visits" not "clicks"
-- Plain, direct English — one person to another
-- 2 sentences, hard limit
-- Output only the hook text, no subject line, no greeting, no sign-off\
+- Plain, direct English
+- 2 sentences, hard limit — no exceptions
+- Output only the hook text, nothing else\
 """
 
 

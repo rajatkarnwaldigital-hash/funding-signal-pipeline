@@ -29,13 +29,20 @@ jobs:
           GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
         run: python semrush_requalify.py
 
-      - name: Step 2 — reset all GENERATED hooks for reprocessing
+      - name: Step 2 — refresh paid_traffic for QUALIFIED rows (database uk)
+        env:
+          GOOGLE_SERVICE_ACCOUNT_JSON: /tmp/service_account.json
+          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+          SEMRUSH_API_KEY: ${{ secrets.SEMRUSH_API_KEY }}
+        run: python paid_traffic_refresh.py
+
+      - name: Step 3 — reset all GENERATED hooks for reprocessing
         env:
           GOOGLE_SERVICE_ACCOUNT_JSON: /tmp/service_account.json
           GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
         run: python hook_reset.py
 
-      - name: Step 3 — generate hooks (batch 50)
+      - name: Step 4 — generate hooks (batch 50)
         env:
           GOOGLE_SERVICE_ACCOUNT_JSON: /tmp/service_account.json
           GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
