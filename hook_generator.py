@@ -99,16 +99,15 @@ def ensure_columns(sheet) -> dict:
 def pick_competitor(competitors: list[dict], target_traffic: int) -> tuple[str, int]:
     """
     Walk the SEMrush competitor list (relevance-sorted) and return the first
-    unblocked domain with at least 500 monthly organic visits.
-    Returns ("", -1) if nothing qualifies.
+    unblocked domain. Presence in the list already implies keyword overlap.
+    Returns ("", -1) only if the entire list is blocked/empty.
     """
     for row in competitors:
         domain  = row.get("Dn", "").strip().lower()
         traffic = parse_int(row.get("Ot", -1))
         if not domain or is_blocked(domain):
             continue
-        if traffic >= 500:
-            return domain, traffic
+        return domain, traffic
     return "", -1
 
 
@@ -244,7 +243,7 @@ def main():
                 log.info("  → NO_COMPETITOR_GAP (no competitor outranks target or all blocked)")
                 stats["no_competitor_gap"] += 1
                 q(row_num, "hook_status", "NO_COMPETITOR_GAP")
-                q(row_num, "hook_notes", "No unblocked competitor found with traffic >= 500")
+                q(row_num, "hook_notes", "No unblocked competitor returned by SEMrush")
                 continue
 
             log.info(
