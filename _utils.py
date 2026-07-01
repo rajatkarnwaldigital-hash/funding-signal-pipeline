@@ -37,9 +37,15 @@ def parse_int(val) -> int:
         return -1
 
 
+BLOCKED_TLDS = {".gov", ".mil", ".edu"}
+
+
 def is_blocked(domain: str) -> bool:
     if not domain or "." not in domain:
         return True
+    for tld in BLOCKED_TLDS:
+        if domain.endswith(tld):
+            return True
     for blocked in BLOCKED_DOMAINS:
         if domain == blocked or domain.endswith("." + blocked):
             return True

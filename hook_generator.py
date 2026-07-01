@@ -96,19 +96,24 @@ def ensure_columns(sheet) -> dict:
 # Competitor selection
 # ---------------------------------------------------------------------------
 
+MIN_SHARED_KEYWORDS = 10
+
+
 def pick_competitor(competitors: list[dict], target_traffic: int) -> tuple[str, int]:
     """
     Walk the SEMrush competitor list (relevance-sorted) and return the first
-    unblocked domain. Presence in the list already implies keyword overlap.
-    Returns ("", -1) only if the entire list is blocked/empty.
+    unblocked domain with at least MIN_SHARED_KEYWORDS keyword overlap.
 
-    domain_organic_organic returns full column names ('Domain', 'Organic Traffic')
-    rather than the short codes ('Dn', 'Ot') — check both for resilience.
+    domain_organic_organic returns full column names ('Domain', 'Organic Keywords',
+    'Organic Traffic') rather than the short codes — check both for resilience.
     """
     for row in competitors:
-        domain  = (row.get("Domain") or row.get("Dn") or "").strip().lower()
-        traffic = parse_int(row.get("Organic Traffic") or row.get("Ot") or -1)
+        domain   = (row.get("Domain") or row.get("Dn") or "").strip().lower()
+        traffic  = parse_int(row.get("Organic Traffic") or row.get("Ot") or -1)
+        overlap  = parse_int(row.get("Organic Keywords") or row.get("Or") or 0)
         if not domain or is_blocked(domain):
+            continue
+        if overlap < MIN_SHARED_KEYWORDS:
             continue
         return domain, traffic
     return "", -1
@@ -119,30 +124,32 @@ def pick_competitor(competitors: list[dict], target_traffic: int) -> tuple[str, 
 # ---------------------------------------------------------------------------
 
 HOOK_PROMPT = """\
-Write a cold email hook for an SEO agency called EthicalSEO (sender: Konstantin Sadekov).
+Write a 2-sentence cold email opening. Pure observation only — no agency name, no solution offer, no call to action.
 
-Target company: {company_name} (website: {domain})
-Their monthly organic search visits: {target_traffic:,}
-A competitor identified in their organic keyword space: {competitor_domain}
+Target: {company_name} ({domain})
+Their monthly organic visits: {target_traffic:,}
+Their monthly paid search visits: {paid_traffic:,}
+Top keyword-overlap competitor: {competitor_domain}
 That competitor's monthly organic visits: {competitor_traffic:,}
 
-Frame the hook based on the traffic numbers:
-- If {competitor_domain} has more visits than {company_name}: open with the gap — {company_name} is missing organic visits that {competitor_domain} captures from the same keyword territory
-- If {competitor_domain} has fewer or equal visits: open with the keyword territory — {competitor_domain} is ranking for terms in {company_name}'s space that {company_name} is not yet capturing, which is organic pipeline they are not building
-In both cases: (2) name the likely cost — that gap typically gets covered with paid search budget that does not compound, (3) offer that this is exactly what EthicalSEO fixes
+Pick the angle that makes the sharper point:
+- Paid-to-organic: if {company_name} has meaningful paid visits, note that they are spending on search demand that {competitor_domain} captures organically — making the paid spend visible as an ongoing cost for something a competitor gets for free
+- Organic gap: if paid visits are low or zero, note that {competitor_domain} is capturing visits from keyword territory that {company_name} is not yet ranking for
+
+Sentence 1: state exactly what you observed — name both companies and use the actual numbers
+Sentence 2: state the implication for their pipeline or budget — no solution, just the consequence
 
 Rules — all mandatory:
-- Do not mention funding, hiring, or any news announcement. Write as if you found them through organic research only.
-- If {company_name} looks like a SaaS or software company based on the domain, add one sentence that {competitor_domain} is now being cited in AI search results and AI-generated answers, and {company_name} is not yet
-- Every sentence must state a problem or offer a solution — nothing filler or introductory
-- Frame around revenue and cost, not vanity traffic numbers
-- Use "visits" not "clicks"
-- No em dashes
-- No AI-speak: do not use "leverage", "landscape", "dive into", "delve", "it's worth noting", "game-changer", "unlock", "journey", "cutting-edge", "robust"
-- Do not mention SEMrush or any analytics tool by name
-- Write as one person to another — plain, direct English
-- 2 to 4 sentences maximum
-- Output only the hook text, no subject line, no greeting, no sign-off, nothing else\
+- Do NOT mention funding, hiring, or any recent news — write as if you found this through search research only
+- Do NOT name any agency, do not offer a fix, do not say "we" or "I can help"
+- The em dash character (—) is FORBIDDEN — do not use it anywhere, replace any break with a comma or period
+- Do NOT invent or estimate dollar figures
+- Do NOT mention SEMrush or any analytics tool by name
+- No AI-speak: do not use "leverage", "landscape", "dive into", "delve", "game-changer", "unlock", "journey", "cutting-edge", "robust"
+- Write "visits" not "clicks"
+- Plain, direct English — one person to another
+- 2 sentences, hard limit
+- Output only the hook text, no subject line, no greeting, no sign-off\
 """
 
 
@@ -150,6 +157,7 @@ def generate_hook(
     company_name: str,
     domain: str,
     target_traffic: int,
+    paid_traffic: int,
     competitor_domain: str,
     competitor_traffic: int,
     claude_client: anthropic.Anthropic,
@@ -158,6 +166,7 @@ def generate_hook(
         company_name=company_name,
         domain=domain,
         target_traffic=target_traffic,
+        paid_traffic=paid_traffic,
         competitor_domain=competitor_domain,
         competitor_traffic=competitor_traffic,
     )
@@ -195,6 +204,7 @@ def main():
     domain_idx          = col_map.get("domain", 0) - 1
     company_name_idx    = col_map.get("company_name", 0) - 1
     organic_traffic_idx = col_map.get("organic_traffic", 0) - 1
+    paid_traffic_idx    = col_map.get("paid_traffic", 0) - 1
 
     # Find rows where semrush_status=QUALIFIED and hook_status is empty
     unprocessed = []
@@ -204,12 +214,14 @@ def main():
             domain       = safe_cell(row, domain_idx)
             company_name = safe_cell(row, company_name_idx)
             traffic      = parse_int(safe_cell(row, organic_traffic_idx))
+            paid         = parse_int(safe_cell(row, paid_traffic_idx))
             if domain:
                 unprocessed.append({
                     "sheet_row":    i,
                     "domain":       domain,
                     "company_name": company_name or domain,
                     "traffic":      traffic,
+                    "paid_traffic": max(paid, 0),
                 })
 
     log.info("Unprocessed rows: %d — processing up to %d", len(unprocessed), BATCH_SIZE)
@@ -223,9 +235,10 @@ def main():
 
     for item in batch:
         row_num      = item["sheet_row"]
-        domain       = item["domain"]
-        company_name = item["company_name"]
+        domain         = item["domain"]
+        company_name   = item["company_name"]
         target_traffic = item["traffic"]
+        paid_traffic   = item["paid_traffic"]
 
         log.info("Row %d: %s (traffic=%s)", row_num, domain, target_traffic)
 
@@ -261,6 +274,7 @@ def main():
                 company_name=company_name,
                 domain=domain,
                 target_traffic=target_traffic,
+                paid_traffic=paid_traffic,
                 competitor_domain=competitor_domain,
                 competitor_traffic=competitor_traffic,
                 claude_client=claude_client,
