@@ -21,7 +21,7 @@ SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
 SEMRUSH_URL   = "https://api.semrush.com/"
 ANALYTICS_URL = "https://api.semrush.com/analytics/v1/"
-DATABASE = "us"
+DATABASE = "uk"
 DELAY    = 0.35   # seconds between API calls — stay well under rate limits
 
 TRAFFIC_MIN = 500

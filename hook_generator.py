@@ -21,7 +21,7 @@ BATCH_SIZE = 50
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
 SEMRUSH_URL = "https://api.semrush.com/"
-DATABASE    = "us"
+DATABASE    = "uk"
 DELAY       = 0.35   # seconds between SEMrush calls
 
 NEW_COLUMNS = ["hook", "hook_status", "hook_notes", "competitor_domain"]
