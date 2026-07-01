@@ -96,8 +96,9 @@ def ensure_columns(sheet) -> dict:
 # Competitor selection
 # ---------------------------------------------------------------------------
 
-MIN_SHARED_KEYWORDS  = 10
+MIN_SHARED_KEYWORDS    = 10
 MIN_COMPETITOR_TRAFFIC = 200
+MAX_TRAFFIC_RATIO      = 50   # skip if competitor is >50x larger than target (false match)
 
 
 def pick_competitor(competitors: list[dict], target_traffic: int) -> tuple[str, int]:
@@ -105,6 +106,9 @@ def pick_competitor(competitors: list[dict], target_traffic: int) -> tuple[str, 
     Walk the SEMrush competitor list (relevance-sorted) and return the first
     unblocked domain with at least MIN_SHARED_KEYWORDS keyword overlap and
     MIN_COMPETITOR_TRAFFIC organic visits (avoids near-zero ghost competitors).
+
+    MAX_TRAFFIC_RATIO guards against giant general-purpose sites (e.g. ResearchGate,
+    thelogic.co) that share incidental keywords but are not real competitors.
 
     domain_organic_organic returns full column names ('Domain', 'Organic Keywords',
     'Organic Traffic') rather than the short codes — check both for resilience.
@@ -118,6 +122,9 @@ def pick_competitor(competitors: list[dict], target_traffic: int) -> tuple[str, 
         if overlap < MIN_SHARED_KEYWORDS:
             continue
         if traffic < MIN_COMPETITOR_TRAFFIC:
+            continue
+        if target_traffic > 0 and traffic > target_traffic * MAX_TRAFFIC_RATIO:
+            log.info("  Skipping %s (traffic=%d is >%dx target=%d)", domain, traffic, MAX_TRAFFIC_RATIO, target_traffic)
             continue
         return domain, traffic
     return "", -1
