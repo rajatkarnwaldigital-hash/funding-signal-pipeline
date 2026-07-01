@@ -132,7 +132,7 @@ Write a 2-sentence cold email opening. Pure observation only — no agency name,
 
 Target: {company_name} ({domain})
 Their monthly organic visits: {target_traffic:,}
-Their monthly paid search visits: {paid_traffic:,}
+Their monthly paid search visits: {paid_traffic}
 Competitor in their keyword space: {competitor_domain}
 That competitor's monthly organic visits: {competitor_traffic:,}
 
@@ -168,11 +168,15 @@ def generate_hook(
     competitor_traffic: int,
     claude_client: anthropic.Anthropic,
 ) -> str:
+    # Only surface paid traffic in the prompt when we have a real number.
+    # Natural-language conditionals in the prompt are not reliably enforced by
+    # the model — passing paid=0 causes fabricated paid-search claims.
+    paid_str = f"{paid_traffic:,}" if paid_traffic >= 500 else "0 (not running paid search)"
     prompt = HOOK_PROMPT.format(
         company_name=company_name,
         domain=domain,
         target_traffic=target_traffic,
-        paid_traffic=paid_traffic,
+        paid_traffic=paid_str,
         competitor_domain=competitor_domain,
         competitor_traffic=competitor_traffic,
     )
