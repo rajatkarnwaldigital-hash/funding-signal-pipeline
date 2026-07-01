@@ -101,10 +101,13 @@ def pick_competitor(competitors: list[dict], target_traffic: int) -> tuple[str, 
     Walk the SEMrush competitor list (relevance-sorted) and return the first
     unblocked domain. Presence in the list already implies keyword overlap.
     Returns ("", -1) only if the entire list is blocked/empty.
+
+    domain_organic_organic returns full column names ('Domain', 'Organic Traffic')
+    rather than the short codes ('Dn', 'Ot') — check both for resilience.
     """
     for row in competitors:
-        domain  = row.get("Dn", "").strip().lower()
-        traffic = parse_int(row.get("Ot", -1))
+        domain  = (row.get("Domain") or row.get("Dn") or "").strip().lower()
+        traffic = parse_int(row.get("Organic Traffic") or row.get("Ot") or -1)
         if not domain or is_blocked(domain):
             continue
         return domain, traffic
@@ -237,13 +240,10 @@ def main():
                 q(row_num, "hook_notes", "SEMrush returned no competitor data")
                 continue
 
-            log.info("  SEMrush returned %d competitors; first 3 raw: %s",
-                     len(competitors), competitors[:3])
-
             competitor_domain, competitor_traffic = pick_competitor(competitors, target_traffic)
 
             if not competitor_domain:
-                log.info("  → NO_COMPETITOR_GAP (all %d competitors blocked or empty Dn)",
+                log.info("  → NO_COMPETITOR_GAP (all %d competitors blocked or empty domain)",
                          len(competitors))
                 stats["no_competitor_gap"] += 1
                 q(row_num, "hook_status", "NO_COMPETITOR_GAP")
