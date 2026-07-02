@@ -96,7 +96,7 @@ def ensure_columns(sheet) -> dict:
 # Competitor selection
 # ---------------------------------------------------------------------------
 
-MIN_SHARED_KEYWORDS    = 10
+MIN_SHARED_KEYWORDS    = 15
 MIN_COMPETITOR_TRAFFIC = 200
 MAX_TRAFFIC_RATIO      = 50   # skip if competitor is >50x larger than target (false match)
 
@@ -145,9 +145,12 @@ That competitor's monthly organic visits: {competitor_traffic:,}
 
 The hook must always surface a gap or vulnerability for {company_name}, never praise them or imply they are winning. The observation should make the reader think "we have a problem here."
 
+Traffic context: {traffic_context}
+
 Choose the sharpest angle:
 - If {company_name} has meaningful paid visits (paid_traffic > 500): note they are paying for search demand that {competitor_domain} captures for free organically — the paid spend is an ongoing cost for something a competitor earns automatically
-- If paid visits are low or zero: note the specific keyword territory where {competitor_domain} is capturing visits that {company_name} is not ranking for — frame this as pipeline going elsewhere
+- If paid visits are low or zero AND {competitor_domain} has MORE traffic than {company_name}: state the raw gap directly — {competitor_domain} captures X visits where {company_name} captures Y, those are qualified buyers going elsewhere
+- If paid visits are low or zero AND {competitor_domain} has LESS traffic than {company_name}: do NOT compare total traffic (that comparison would make {company_name} look fine). Instead focus only on the specific searches where {competitor_domain} ranks and {company_name} does not — name the competitor, state their visits from those searches, and frame it as pipeline going to them from those specific searches
 
 Sentence 1: state the gap using actual numbers — name both companies, be specific about what {competitor_domain} captures that {company_name} is missing
 Sentence 2: state the cost or consequence in plain terms — qualified search demand flows to a competitor instead of {company_name}'s site. No vague language like "potential losses" or "could mean." State it as a fact.
@@ -179,6 +182,21 @@ def generate_hook(
     # Natural-language conditionals in the prompt are not reliably enforced by
     # the model — passing paid=0 causes fabricated paid-search claims.
     paid_str = f"{paid_traffic:,}" if paid_traffic >= 500 else "0 (not running paid search)"
+
+    # Explicit traffic relationship so Claude doesn't invent its own framing.
+    if competitor_traffic >= target_traffic:
+        traffic_context = (
+            f"{competitor_domain} has MORE organic traffic than {company_name} "
+            f"({competitor_traffic:,} vs {target_traffic:,}). The overall gap is clear — use it directly."
+        )
+    else:
+        traffic_context = (
+            f"{company_name} has more overall organic traffic than {competitor_domain} "
+            f"({target_traffic:,} vs {competitor_traffic:,}). Do NOT compare total traffic — "
+            f"that framing implies {company_name} is already winning. Focus only on the "
+            f"specific searches {competitor_domain} ranks for that {company_name} is missing."
+        )
+
     prompt = HOOK_PROMPT.format(
         company_name=company_name,
         domain=domain,
@@ -186,6 +204,7 @@ def generate_hook(
         paid_traffic=paid_str,
         competitor_domain=competitor_domain,
         competitor_traffic=competitor_traffic,
+        traffic_context=traffic_context,
     )
     try:
         resp = claude_client.messages.create(
