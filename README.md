@@ -75,10 +75,12 @@ The generated hook is a 2-sentence cold email opening. Hard rules baked into the
 
 Competitor selection rules:
 
-- Minimum 10 shared keywords
+- Minimum 15 shared keywords
 - Minimum 200 monthly visits (filters ghost competitors)
 - Maximum 50× the target's traffic (filters incidental matches like academic databases)
 - Blocked TLDs: `.gov`, `.mil`, `.edu`
+- Blocked domains: known category mismatches (news sites, charities, fan forums, nonprofits) listed in `_utils.py`
+- Claude sanity-check: each candidate passes a haiku call confirming it is a genuine business competitor before being accepted — walks down the list until one passes, or marks `NO_COMPETITOR_GAP` if none do
 
 ## Google Sheet columns
 

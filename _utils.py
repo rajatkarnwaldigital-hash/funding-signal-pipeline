@@ -2,6 +2,7 @@
 # No third-party dependencies — stdlib only.
 
 BLOCKED_DOMAINS = {
+    # News, media, directories
     "wikipedia.org", "crunchbase.com", "linkedin.com", "techcrunch.com",
     "bloomberg.com", "forbes.com", "businesswire.com", "reuters.com",
     "wsj.com", "ft.com", "nytimes.com", "theguardian.com",
@@ -12,6 +13,26 @@ BLOCKED_DOMAINS = {
     "medium.com", "substack.com", "angel.co", "angellist.com",
     "pitchbook.com", "cbinsights.com", "dealroom.co", "techeu.com",
     "prnewswire.com", "globenewswire.com", "accesswire.com",
+    # Confirmed category mismatches — wrong industry surfaced by SEMrush overlap
+    "bgo.com",               # casino (matched software/app companies)
+    "thelogic.co",           # Canadian tech news site
+    "mdauk.org",             # Muscular Dystrophy Association UK (acronym collision with MDA Space)
+    "blossomeducational.com",# educational toys (matched Blossom Social)
+    "agilealliance.org",     # methodology nonprofit (matched OpenText)
+    "readdle.com",           # productivity apps (matched Nuvei payment platform)
+    "fusionxinvest.com",     # investment firm (matched General Fusion)
+    "meridianstar.com",      # news site (matched Meridian nonprofit, name collision)
+    "tastekenyauk.com",      # food/tea importer (matched Omnea procurement)
+    "pons.com",              # language learning (matched Etched AI chips)
+    "trendbible.com",        # fashion forecasting (matched Fluent language platform)
+    "againstmalaria.com",    # charity (matched Peec AI)
+    "dayiwasborn.co.uk",     # gift novelty site (matched Archimede watches)
+    "preventioninstitute.org",# health nonprofit (matched Purpose)
+    "north.tech",            # Faroe Islands app company (matched Cohere enterprise AI)
+    "popchorus.co.uk",       # choir/music community (matched Finn car subscription via neilfinn.com resolver bug)
+    "u2songs.com",           # U2 fan site (matched Bono company via u2.com resolver bug)
+    "vandusengarden.org",    # botanical garden (matched Showpass ticketing)
+    "rivianforums.com",      # EV fan forum (matched Slate Auto)
 }
 
 

@@ -100,8 +100,47 @@ MIN_SHARED_KEYWORDS    = 15
 MIN_COMPETITOR_TRAFFIC = 200
 MAX_TRAFFIC_RATIO      = 50   # skip if competitor is >50x larger than target (false match)
 
+COMPETITOR_CHECK_PROMPT = """\
+Two websites. Are they genuine business competitors — same product category, same buyer?
 
-def pick_competitor(competitors: list[dict], target_traffic: int) -> tuple[str, int]:
+Company A: {company_name} ({domain})
+Company B: {competitor_domain}
+
+Reply with one word only: YES or NO.\
+"""
+
+
+def _is_real_competitor(
+    company_name: str,
+    domain: str,
+    competitor_domain: str,
+    claude_client: anthropic.Anthropic,
+) -> bool:
+    """Ask Claude (haiku) whether two domains are genuine business competitors."""
+    try:
+        resp = claude_client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=5,
+            messages=[{"role": "user", "content": COMPETITOR_CHECK_PROMPT.format(
+                company_name=company_name,
+                domain=domain,
+                competitor_domain=competitor_domain,
+            )}],
+        )
+        answer = resp.content[0].text.strip().upper()
+        return answer.startswith("YES")
+    except Exception as exc:
+        log.warning("Competitor sanity-check failed [%s vs %s]: %s — accepting", domain, competitor_domain, exc)
+        return True  # fail open so a Claude outage doesn't block all hooks
+
+
+def pick_competitor(
+    competitors: list[dict],
+    target_traffic: int,
+    company_name: str = "",
+    domain: str = "",
+    claude_client=None,
+) -> tuple[str, int]:
     """
     Walk the SEMrush competitor list (relevance-sorted) and return the first
     unblocked domain with at least MIN_SHARED_KEYWORDS keyword overlap and
@@ -110,23 +149,30 @@ def pick_competitor(competitors: list[dict], target_traffic: int) -> tuple[str, 
     MAX_TRAFFIC_RATIO guards against giant general-purpose sites (e.g. ResearchGate,
     thelogic.co) that share incidental keywords but are not real competitors.
 
+    If claude_client is provided, each candidate is also checked with a quick
+    haiku call to confirm it is a genuine business competitor before accepting.
+
     domain_organic_organic returns full column names ('Domain', 'Organic Keywords',
     'Organic Traffic') rather than the short codes — check both for resilience.
     """
     for row in competitors:
-        domain   = (row.get("Domain") or row.get("Dn") or "").strip().lower()
-        traffic  = parse_int(row.get("Organic Traffic") or row.get("Ot") or 0)
-        overlap  = parse_int(row.get("Organic Keywords") or row.get("Or") or 0)
-        if not domain or is_blocked(domain):
+        comp_domain = (row.get("Domain") or row.get("Dn") or "").strip().lower()
+        traffic     = parse_int(row.get("Organic Traffic") or row.get("Ot") or 0)
+        overlap     = parse_int(row.get("Organic Keywords") or row.get("Or") or 0)
+        if not comp_domain or is_blocked(comp_domain):
             continue
         if overlap < MIN_SHARED_KEYWORDS:
             continue
         if traffic < MIN_COMPETITOR_TRAFFIC:
             continue
         if target_traffic > 0 and traffic > target_traffic * MAX_TRAFFIC_RATIO:
-            log.info("  Skipping %s (traffic=%d is >%dx target=%d)", domain, traffic, MAX_TRAFFIC_RATIO, target_traffic)
+            log.info("  Skipping %s (traffic=%d is >%dx target=%d)", comp_domain, traffic, MAX_TRAFFIC_RATIO, target_traffic)
             continue
-        return domain, traffic
+        if claude_client and company_name and domain:
+            if not _is_real_competitor(company_name, domain, comp_domain, claude_client):
+                log.info("  Skipping %s (failed Claude category check)", comp_domain)
+                continue
+        return comp_domain, traffic
     return "", -1
 
 
@@ -289,7 +335,12 @@ def main():
                 q(row_num, "hook_notes", "SEMrush returned no competitor data")
                 continue
 
-            competitor_domain, competitor_traffic = pick_competitor(competitors, target_traffic)
+            competitor_domain, competitor_traffic = pick_competitor(
+                competitors, target_traffic,
+                company_name=company_name,
+                domain=domain,
+                claude_client=claude_client,
+            )
 
             if not competitor_domain:
                 log.info("  → NO_COMPETITOR_GAP (all %d competitors blocked or empty domain)",
